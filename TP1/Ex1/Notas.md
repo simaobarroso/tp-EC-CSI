@@ -9,3 +9,7 @@ Alterar forma de funcionamento de nonce:
 Alterar forma de funcionamento do programa:
 
 - o emissor e recetor devem ser executados em simultâneo
+
+Notas Simão:
+Será melhor utilizar multiprocessing ou asyncio?
+cython
