@@ -79,7 +79,7 @@ class Person:
         shared_key = self.cipher_X_key.exchange(peer_cipher_X_key)
         derived_key = HKDF(
             algorithm = hashes.SHA256(),
-            length = 32, # 32*8=256 bits necessarios para usar chave no algoritmo AES256
+            length = 32, # ChaCha20Poly1305 key must be 32 bytes.
             salt = None,
             info = b"handshake data",
         ).derive(shared_key)
@@ -169,6 +169,8 @@ async def main():
     #Enviar mensagem
     await emissor.send(b"He's Not The Messiah, He's A Very Naughty Boy.")
     await receptor.receive()
+    await receptor.send(b"THE NIGTHS WHO NI NI NI NI NI NI")
+    await emissor.receive()
 
 asyncio.run(main())
 
