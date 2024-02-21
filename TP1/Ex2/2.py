@@ -9,120 +9,143 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from datetime import datetime
+import sys
 
 
 nest_asyncio.apply()
 
-#SERÁ PRECISO ISTO?
-def xoring(b1, b2): # use xor for multiples bytes
-    if len(b1) < len(b2):
-        b1 += b"\x00" * (len(b2) - len(b1))
-    elif len(b2) < len(b1):
-        b2 += b"\x00" * (len(b1) - len(b2))
+def padding(b1,b2):
+    lb1 = len(b1)
+    lb2 = len(b2)
+    if lb1 < lb2:
+        b1 += b"\x00" * (lb2 - lb1)
+    elif lb1 > lb2:
+        b2 += b"\x00" * (lb1 - lb2)
+    return xor(b1, b2)
+
+def xor(b1, b2): 
     result = b''
-    for b1, b2 in zip(b1, b2):
-        result += bytes([b1 ^ b2])
+    result += bytes([bt1 ^ bt2 for bt1, bt2 in zip(b1,b2) ]) # for b1, b2 in zip(b1, b2):
     return result
 
 class Person:
-    ad = str(datetime.now()).encode('utf-8')
-
     def __init__(self, queue):
         self.queue = queue
 
     async def cipher_key(self):
         # chaves privadas e publicas do Ed448
-        self.cipher_E_key = Ed448PrivateKey.generate()
-        self.public_cipher_E_key = self.cipher_E_key.public_key()
+        self.priv_Ed448_key = Ed448PrivateKey.generate()
+        self.pub_Ed448_key = self.priv_Ed448_key.public_key()
         # chaves privadas e publicas do X448
-        self.cipher_X_key = X448PrivateKey.generate()
-        self.public_cipher_X_key = self.cipher_X_key.public_key()
+        self.priv_x448_key = X448PrivateKey.generate()
+        self.pub_x448_key = self.priv_x448_key.public_key()
 
 
-    async def share_cipher_key(self):
+    async def share_keys(self):
         # enviar a chave publica do Ed448
-        await self.queue.put(self.public_cipher_E_key)
+        await self.queue.put(self.pub_Ed448_key)
         # autenticar a chave publica do Ed448
-        signature_E = self.cipher_E_key.sign(
-            self.public_cipher_E_key.public_bytes(Encoding.Raw, PublicFormat.Raw)
+        sigEd448 = self.priv_Ed448_key.sign(
+            self.pub_Ed448_key.public_bytes(Encoding.Raw, PublicFormat.Raw)
         )
         # enviar a assinatura da chave publica do Ed448
-        await self.queue.put(signature_E)
+        await self.queue.put(sigEd448)
 
         # enviar a chave publica do X448
-        await self.queue.put(self.public_cipher_X_key)
+        await self.queue.put(self.pub_x448_key)
         # autenticar a chave publica do X448
-        signature_X = self.cipher_E_key.sign(
-            self.public_cipher_X_key.public_bytes(Encoding.Raw, PublicFormat.Raw)
+        sigx448 = self.priv_Ed448_key.sign(
+            self.pub_x448_key.public_bytes(Encoding.Raw, PublicFormat.Raw)
         )
         # enviar a assinatura da chave publica do X448
-        await self.queue.put(signature_X)
+        await self.queue.put(sigx448)
 
 
 
-    async def receive_cipher_key(self):
+    async def receive_keys(self):
         # receber chave publica do Ed448 do outro lado e a sua respetiva assinatura
-        peer_cipher_E_key = await self.queue.get()
-        peer_cipher_E_key_signature = await self.queue.get()
+        peer_priv_Ed448_key = await self.queue.get()
+        peer_priv_Ed448_key_signature = await self.queue.get()
         
         # verificar a assinatura da chave publica do Ed448  do outro lado e guardar a para futuras verificações
-        peer_cipher_E_key.verify(peer_cipher_E_key_signature, peer_cipher_E_key.public_bytes(Encoding.Raw, PublicFormat.Raw))
-        self.peer_verify_key = peer_cipher_E_key
+        peer_priv_Ed448_key.verify(peer_priv_Ed448_key_signature, peer_priv_Ed448_key.public_bytes(Encoding.Raw, PublicFormat.Raw))
+        self.peer_verify_key = peer_priv_Ed448_key
         
         # receber chave publica do X448 do outro lado e a sua respetiva assinatura
-        peer_cipher_X_key = await self.queue.get()
-        peer_cipher_X_key_signature = await self.queue.get()
+        peer_priv_x448_key = await self.queue.get()
+        peer_priv_x448_key_signature = await self.queue.get()
         # verificar a assinatura da chave publica do X448
-        self.peer_verify_key.verify(peer_cipher_X_key_signature, peer_cipher_X_key.public_bytes(Encoding.Raw, PublicFormat.Raw))
+        self.peer_verify_key.verify(peer_priv_x448_key_signature, peer_priv_x448_key.public_bytes(Encoding.Raw, PublicFormat.Raw))
         
         # derivar as duas chaves publicas do X448 para obter a chave de cifra acordada entre os dois lados
-        shared_key = self.cipher_X_key.exchange(peer_cipher_X_key)
+        shared_key = self.priv_x448_key.exchange(peer_priv_x448_key)
         derived_key = HKDF(
             algorithm = hashes.SHA256(),
             length = 32, # ChaCha20Poly1305 key must be 32 bytes.
             salt = None,
             info = b"handshake data",
         ).derive(shared_key)
-        self.agreed_cipher_key = derived_key
+        self.agreed_key = derived_key
 
     async def send(self, plaintext):
-        key = self.agreed_cipher_key
+        ad = str(datetime.now()).encode('utf-8')
+
+        key = self.agreed_key
         # gerar o nounce e o tweak, e as respetivas assinaturas
-        #nounce = os.urandom(16)
-        #signature_nou = self.cipher_E_key.sign(nounce)
-        tweak = os.urandom(12)
-        signature_tw = self.cipher_E_key.sign(tweak)
+        nounce = os.urandom(16)
+        #nc_sig = self.priv_Ed448_key.sign(nounce)
+        tweak = os.urandom(8)
+        #tw_sig = self.priv_Ed448_key.sign(tweak)
+        print("Plaintext Sent: "+str(plaintext))
 
         # cifrar o plaintext segundo a definicao do enunciado:
-        # Ẽ(w,k,x) = E(k,w ⊕ E(k,x))
-        chacha = ChaCha20Poly1305(key)
-        aad = bytes(self.ad)
-        ciphertext2 = chacha.encrypt(tweak, plaintext, aad)
-        print(b"Sent: "+ciphertext2)
+        # Ẽ(w,k,x) = E(k,w ^ E(k,x))
+        aes = Cipher(algorithms.AES(key), modes.CTR(nounce)).encryptor()
+        ciphertext = aes.update(plaintext)
+        xored = padding(tweak, ciphertext)
+        ciphertext = aes.update(xored) + aes.finalize()
+        #chacha = ChaCha20Poly1305(key)
+        #aad = bytes(ad)
+        #ciphertext2 = chacha.encrypt(tweak, plaintext, aad)
+        print("\tCiphertext Sent: "+str(ciphertext))
         #print(aad)
         # obter a assinatura da mensagem cifrada
-        signature_ct = self.cipher_E_key.sign(ciphertext2)
 
-        # enviar a mensagem cifrada, o tweak e o nounce, bem como as assinaturas
-        await self.queue.put(ciphertext2)
-        await self.queue.put(signature_ct)
-        await self.queue.put(aad)
+        await self.queue.put(self.priv_Ed448_key.sign(ciphertext))
+        await self.queue.put(ciphertext)
+        
+        #await self.queue.put(aad)
 
-        #await self.queue.put(nounce)
+        await self.queue.put(self.priv_Ed448_key.sign(nounce))
+        await self.queue.put(nounce)
+
         #await self.queue.put(signature_nou)
+        await self.queue.put(self.priv_Ed448_key.sign(tweak))
         await self.queue.put(tweak)
-        await self.queue.put(signature_tw)
+        #await self.queue.put(tw_sig)
 
 
     async def receive(self):
-        key = self.agreed_cipher_key
+        key = self.agreed_key
 
+    
         # receber e verificar a assinatura da mensagem cifrada
+        sig_ctext = await self.queue.get()
         ciphertext = await self.queue.get()
-        signature_ct = await self.queue.get()
-        self.peer_verify_key.verify(signature_ct, ciphertext)
-        print(b"Received: "+ciphertext+b"")
-        aad = await self.queue.get()
+        self.peer_verify_key.verify(sig_ctext, ciphertext)
+
+        # receber e verificar a assinatura do nounce
+        sig_nounce = await self.queue.get()
+        nounce = await self.queue.get()
+        self.peer_verify_key.verify(sig_nounce, nounce)
+
+        # receber e verificar a assinatura do tweak
+        sig_tweak = await self.queue.get()
+        tweak = await self.queue.get()
+        self.peer_verify_key.verify(sig_tweak, tweak)
+        
+        print("\tCiphertext Received: "+str(ciphertext))
+        #aad = await self.queue.get()
 
         # receber e verificar a assinatura do nounce
         #nounce = await self.queue.get()
@@ -130,17 +153,22 @@ class Person:
         #self.peer_verify_key.verify(signature_nou, nounce)
 
         # receber e verificar a assinatura do tweak
-        tweak = await self.queue.get()
-        signature_tw = await self.queue.get()
-        self.peer_verify_key.verify(signature_tw, tweak)
+        #tweak = await self.queue.get()
+        #signature_tw = await self.queue.get()
+        #self.peer_verify_key.verify(signature_tw, tweak)
 
-        chacha = ChaCha20Poly1305(key)
-        plaintext2 = chacha.decrypt(tweak,ciphertext,aad)
+        aes = Cipher(algorithms.AES(key), modes.CTR(nounce)).decryptor()
+        plaintext = aes.update(ciphertext)
+        xored = padding(tweak, plaintext)
+        plaintext = aes.update(xored) + aes.finalize()
+
+        #chacha = ChaCha20Poly1305(key)
+        #plaintext2 = chacha.decrypt(tweak,ciphertext,aad)
         # decifrar a mensagem de maneira inversa a definida no envio
-        print(b"Decrypted: "+plaintext2+b"")
+        print("Decrypted: "+str(plaintext)+"\n")
 
     async def print_agreed_key(self):
-        print(self.agreed_cipher_key)
+        print(self.agreed_key)
 
 
 async def main():
@@ -156,18 +184,24 @@ async def main():
     await receptor.cipher_key()
 
     #Trocar Chave de Cifra
-    await emissor.share_cipher_key()
-    await receptor.receive_cipher_key()
-    await receptor.share_cipher_key()
-    await emissor.receive_cipher_key()
+    await emissor.share_keys()
+    await receptor.receive_keys()
+    await receptor.share_keys()
+    await emissor.receive_keys()
 
     #Verificar se as chaves de cifra são iguais
     #await emissor.print_agreed_key()
     #await receptor.print_agreed_key()
-    print(emissor.agreed_cipher_key == receptor.agreed_cipher_key)
 
+    if (emissor.agreed_key == receptor.agreed_key):
+        print("Chave acordada: " + str(emissor.agreed_key) + "\n")
+    else : 
+        print(f"Chave não foi acordada\nChave emissor: {str(emissor.agreed_key)}\nChave recetor: {str(receptor.agreed_key)}")
+        sys.exit("Chave não foi acordada")
+
+    #emissor.agreed_key = b'12345678901234567890123456789012'
     #Enviar mensagem
-    await emissor.send(b"He's Not The Messiah, He's A Very Naughty Boy.")
+    await emissor.send(b"teste")
     await receptor.receive()
     await receptor.send(b"THE NIGTHS WHO NI NI NI NI NI NI")
     await emissor.receive()
