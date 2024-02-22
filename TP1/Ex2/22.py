@@ -70,7 +70,7 @@ class channel:
         derived_key = HKDF(
             algorithm = hashes.SHA256(),
             length = 32, 
-            salt = b"salt",
+            salt = None,
             info = b"handshake data",
         ).derive(shared_key)
         self.agreed_key = derived_key
@@ -89,6 +89,8 @@ class channel:
         
         print("\tCiphertext Sent: "+str(ciphertext))
         
+        # tuplo 
+
         await self.queue.put(self.priv_Ed448_key.sign(ad))
         await self.queue.put(ad)
 
@@ -98,11 +100,9 @@ class channel:
         await self.queue.put(self.priv_Ed448_key.sign(tag))
         await self.queue.put(tag)
         
-
         await self.queue.put(self.priv_Ed448_key.sign(nounce))
         await self.queue.put(nounce)
 
-        
         await self.queue.put(self.priv_Ed448_key.sign(tweak))
         await self.queue.put(tweak)
         
@@ -179,7 +179,7 @@ async def main():
     
     await emissor.send("Brave Sir Robin ran away. Bravely ran away away. . .")
     await receptor.receive()
-    await receptor.send("Spam! Spam! Spam! Spam! Spam! Spam!")
+    await receptor.send("1.5")
     await emissor.receive()
 
 asyncio.run(main())

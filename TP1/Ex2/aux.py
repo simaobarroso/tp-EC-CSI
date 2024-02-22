@@ -76,9 +76,9 @@ def get_ciphertext(cipher_key, nonce, tweak, plaintext, ad):
     chacha = ChaCha20Poly1305(cipher_key)
     ciphertext = chacha.encrypt(nonce, plaintext, ad)
 
-    xored = [(a^b).to_bytes(1,byteorder='big') for (a,b) in zip(tweak, ciphertext)]
+    xored = bytes([(a^b) for (a,b) in zip(tweak, ciphertext)])
 
-    return b"".join(xored)
+    return xored
 
 def encrypt(plaintext, cipher_key, ad):
     # divide plaintext into blocks
