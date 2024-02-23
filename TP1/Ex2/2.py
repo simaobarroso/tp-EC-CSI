@@ -157,7 +157,7 @@ class channel:
         #signature_tw = await self.queue.get()
         #self.peer_verify_key.verify(signature_tw, tweak)
 
-        aes = Cipher(algorithms.AES(key), modes.CTR(nounce)).decryptor()
+        aes = Cipher(algorithms.AES256(key), modes.CTR(nounce)).decryptor()
         plaintext = aes.update(ciphertext)
         xored = padding(tweak, plaintext)
         plaintext = aes.update(xored) + aes.finalize()
