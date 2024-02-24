@@ -100,7 +100,7 @@ class channel:
 
         # cifrar o plaintext segundo a definicao do enunciado:
         # Ẽ(w,k,x) = E(k,w ^ E(k,x))
-        aes = Cipher(algorithms.AES(key), modes.CTR(nounce)).encryptor() # MUDAR PARA O AES 256 !!!
+        aes = Cipher(algorithms.AES256(key), modes.CTR(nounce)).encryptor() # MUDAR PARA O AES 256 !!!
         ciphertext = aes.update(plaintext)
         xored = padding(tweak, ciphertext)
         ciphertext = aes.update(xored) + aes.finalize()
