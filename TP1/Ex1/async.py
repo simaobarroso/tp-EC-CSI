@@ -1,29 +1,25 @@
 import ascon
-import asyncio
 import random
+import asyncio
+import hashlib
 import nest_asyncio
 
 nest_asyncio.apply()
 
 hashlength=16
-tag=0
-ext=0
-
 sent_nounces=[]
 
+def calculate_sha256(message):
+    if isinstance(message, str):
+        message = message.encode()
+
+    sha256_hash = hashlib.sha256(message).hexdigest()
+    return sha256_hash
+
 def cipher_message(in_message,key):
-    global tag
-
-    # Message data is altered
-    if in_message=="altered_test":
-        associated_data=f'''message_altered'''.encode()
-    else:
-        associated_data=f'''message_{tag}'''.encode()
-        tag+=1
-
+    associated_data=calculate_sha256(in_message).encode()
     # Message is repeated
     if in_message=="repeat_test":
-        tag-=1
         nounce=sent_nounces[-1]
     else:
         nounce_seed=str(random.getrandbits(128))
@@ -32,24 +28,27 @@ def cipher_message(in_message,key):
     try:
         out_message=ascon.encrypt(key, nounce, associated_data, in_message.encode(), variant="Ascon-128")
         print(f"Sending: {in_message}")
-        print(f"Outgoing >>> ({out_message},{nounce})")
+
+        # Message data is altered
+        if in_message=="altered_test":
+            print(f"Original >>> ({out_message},{nounce},{associated_data})")
+            out_message=out_message[:2]+(f'{out_message[2]+1}'.encode())+out_message[3:]
+
+        print(f"Outgoing >>> ({out_message},{nounce},{associated_data})")
         sent_nounces.append(nounce)
     except Exception as e:
         print(e)
     
-    return (out_message,nounce)
+    return (out_message,nounce,associated_data)
 
-def read_message(text,key,nounce):
-    global ext
-    print(f"Incoming <<< ({text},{nounce})")
-    associated_data=f'''message_{ext}'''.encode()
+def read_message(text,key,nounce,associated_data):
+    print(f"Incoming <<< ({text},{nounce},{associated_data})")
     try:
         out_message=ascon.decrypt(key, nounce, associated_data, text, variant="Ascon-128")
     except Exception as e:
         return "[ERROR] Message could not be decrypted"
-    if out_message==None:
-        return "[ERROR] Message could not be decrypted"
-    ext+=1
+    if out_message==None and calculate_sha256(out_message.decode())!=associated_data.decode():
+        return "[ERROR] Message has been tampered"
     return out_message.decode()
 
 async def emitter(queue,key):
@@ -64,12 +63,12 @@ async def emitter(queue,key):
 async def receiver(queue,key):
     known_nounces=[]
     while True:
-        message,nounce=await queue.get()
+        message,nounce,associated_data=await queue.get()
         if nounce in known_nounces:
             print("Repeated nounce, ignoring message")
         else:
             known_nounces.append(nounce)
-            text=read_message(message,key,nounce)
+            text=read_message(message,key,nounce,associated_data)
             print(f"Received: {text}")
         if text=="exit":
             break
