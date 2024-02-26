@@ -2,7 +2,7 @@ import os
 
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
-data = b"olo oasodaosasdasdasdasdasdasdas"
+data = b"EU NaO ACREDITO NISTO"
 
 aad = b"authenticated but unencrypted data"
 
