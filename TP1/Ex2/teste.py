@@ -2,7 +2,7 @@ import os
 
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
-data = b"EU NaO ACREDITO NISTO"
+data = b"Esssssssssssssssssssssssssssssssssssssssssssssssssssss"
 
 aad = b"authenticated but unencrypted data"
 
@@ -14,7 +14,13 @@ nonce = os.urandom(12)
 
 ct = chacha.encrypt(nonce, data, aad)
 
+print(ct)
+
+print(nonce)
+
 ct2 = chacha.encrypt(nonce, ct, aad)
+
+
 
 print(ct2)
 
