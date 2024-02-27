@@ -1,9 +1,0 @@
-ver notas telemovel + agenda
-
-explicar tudo direitinho, dividir ipynb
-
-cython
-
-usar fonte (site UC, papers, sites etc)
-
-perguntar ao adriano o porque do chacha2o e nao o outro (chat curso)
