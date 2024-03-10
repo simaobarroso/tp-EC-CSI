@@ -14,7 +14,7 @@ Estes problemas destinam à iniciação do uso do SageMath  em protótipos de es
     Neste problema pretende-se uma implementação Sagemath  do NTT-CRT tal como é descrito nesse documento.
 
 
-3. O algoritmo de Boneh e Franklin (BF) discutido no +Capítulo 5b:  Curvas Elípticas e sua Aritmética é uma tecnica fundamental na chamada “Criptografia Orientada à Identidade”. Seguindo as orientações definidas nesse texto, pretende-se construir usando Sagemath uma classe Python que implemente este criptosistema.
+3. O algoritmo de Boneh e Franklin (BF) discutido no [+Capítulo 5b:  Curvas Elípticas e sua Aritmética](https://paper.dropbox.com/doc/PtqeK8HbDo1r6zwmVlhLh) é uma tecnica fundamental na chamada “Criptografia Orientada à Identidade”. Seguindo as orientações definidas nesse texto, pretende-se construir usando Sagemath uma classe Python que implemente este criptosistema.
 
 
 | Note-se que o Sagemath tem definido curvas elíptica super-singulares, a  aritmética nessas curvas elípticas e os emparelhamentos de Tate. Todas essas componentes vão aparecer na definição do algoritmo BF. |

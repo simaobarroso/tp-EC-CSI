@@ -1,0 +1,1 @@
+# Ficheiros sacados da dropbox : https://www.dropbox.com/scl/fo/jwtyhaluwmwmf2bfzyy8u/h/Notebooks/Algebra?dl=0&subfolder_nav_tracking=1
