@@ -538,3 +538,7 @@ def eddsa_obj(name):
     if name == "Ed448": return Ed448
     if name == "Ed448ph": return Ed448ph
     raise NotImplementedError("Algorithm not implemented")
+
+
+a = Ed25519.privkey
+print(a)
