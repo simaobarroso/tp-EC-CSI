@@ -463,3 +463,14 @@ sign = ed448.sign(priv, pub, b'cripto')
 
 a = ed448.verify(pub, b'cripto', sign)
 print(a)
+
+
+priv, pub = ed25519.keygen(None)
+# print('priv:', priv)
+# print('pub:', pub)
+
+sign = ed25519.sign(priv, pub, b'cripto')
+# print('sign:', sign)
+
+a = ed25519.verify(pub, b'cripto', sign)
+print(a)
