@@ -1,0 +1,3 @@
+$$\vartheta\,d\gets\mathsf{ID}(\mathit{id})\,\centerdot\,\vartheta\,v\gets\mathsf{Zr}\,\centerdot\,\vartheta\,a\gets H(v\oplus x)\,\centerdot\,\vartheta\,\mu\gets\mathbf{ex}(\beta,d,a)\,\centerdot\,\langle x,v,a,\mu\rangle$$
+
+o ex é o tateX emparelhamento !
