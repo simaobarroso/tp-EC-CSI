@@ -1,3 +1,10 @@
 $$\vartheta\,d\gets\mathsf{ID}(\mathit{id})\,\centerdot\,\vartheta\,v\gets\mathsf{Zr}\,\centerdot\,\vartheta\,a\gets H(v\oplus x)\,\centerdot\,\vartheta\,\mu\gets\mathbf{ex}(\beta,d,a)\,\centerdot\,\langle x,v,a,\mu\rangle$$
 
 o ex é o tateX emparelhamento !
+
+
+Na 1 
+falar das curvas 448 e isso etc
+ver  e falar da conversão ec ed (trablhos ver)
+
+explicar ex de baixo (mudnaças para o outro)
