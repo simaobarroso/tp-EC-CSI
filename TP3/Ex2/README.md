@@ -1,1 +1,0 @@
-Sagemath já sagemath kem
