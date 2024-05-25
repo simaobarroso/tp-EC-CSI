@@ -69,7 +69,7 @@ def simple_bit_unpack(v, b):
     z = bytes_to_bits(v)
     w = [0] * 256
     for i in range(256):
-        w[i] = bits_to_integer(z[i*c:i*c+c], c)
+        w[i] = bits_to_integer(z[i*c:i*c+c])
     return w
 
 def bit_unpack(v, a, b):
